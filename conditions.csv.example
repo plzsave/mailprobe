@@ -1,0 +1,4 @@
+label,subject,after_date,before_date,expected_charset,expected_mta_count,check_unsubscribe
+UTF8メール_0311,テストメール_UTF8,2025/03/11,2025/03/12,utf-8,3,true
+ISO2022メール_0311,テストメール_ISO2022JP,2025/03/11,2025/03/12,iso-2022-jp,3,true
+SJISメール_0311,テストメール_SJIS,2025/03/11,2025/03/12,shift_jis,3,false

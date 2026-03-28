@@ -1,0 +1,62 @@
+# config.yaml.example
+# このファイルを config.yaml にコピーして使用してください
+# config.yaml は .gitignore に追加し、リポジトリにコミットしないこと
+
+search:
+  subject: "テストメール"       # 件名キーワード (部分一致)
+  from: ""                       # 送信元アドレス (空欄で絞り込まない)
+  after_date: "2025/01/01"       # この日以降 (YYYY/MM/DD)
+  before_date: ""                # この日以前 (空欄で絞り込まない)
+  max_results: 10                # 最大取得件数
+  expected_charset: ""           # 期待するcharset: utf-8 / iso-2022-jp / shift_jis (空欄でチェックしない)
+  expected_mta_count: 0          # 期待するMTA台数 (0でチェックしない)
+
+paths:
+  credentials: "credentials.json"      # Google Cloud からダウンロードしたファイル
+  token: "token.json"                  # Gmail OAuth2トークン (初回認証後に自動生成。要 .gitignore)
+  outlook_token: "outlook_token.json"  # Outlook OAuth2トークンキャッシュ (自動生成。要 .gitignore)
+  originals: "originals"               # 原稿ファイルを置くディレクトリ
+  results: "results"                   # 検証結果JSONの出力先
+
+garbled_threshold: 3               # 文字化けスコアがこの値以上でNG判定
+check_unsubscribe: false           # true にすると List-Unsubscribe / List-Unsubscribe-Post ヘッダーの有無をチェック
+
+# 記録したいカスタムヘッダー名のリスト (空リストまたは省略で記録しない)
+custom_headers: []
+# 例:
+# custom_headers:
+#   - X-Campaign-ID
+#   - X-Mailer-ID
+
+# プロバイダー設定 (uv run mailprobe --provider で使用するプロバイダーを選択)
+# gmail は providers: 未記載でも常に利用可能 (OAuth認証のため email / app_password 不要)
+providers:
+  gmail:
+    enabled: true
+
+  outlook:
+    enabled: false
+    email: "your@outlook.jp"
+    client_id: ""                 # Azure Portal で取得したアプリケーション (クライアント) ID
+    # app_password は不要 (OAuth2使用)。iCloudと共通のImapFetcherのため残しているが通常は空欄でよい
+
+  icloud:
+    enabled: false
+    email: "your@icloud.com"
+    app_password: ""              # 直書き、または環境変数 MAILPROBE_ICLOUD_APP_PASSWORD で指定
+
+  # キャリアメール: 接続情報のみ記載。動作検証未実施のため現在は使用不可
+  # au:
+  #   enabled: false
+  #   email: "your@ezweb.ne.jp"
+  #   app_password: ""            # au回線から https://set.mail.ezweb.ne.jp で取得
+  #
+  # docomo:
+  #   enabled: false
+  #   email: "your@docomo.ne.jp"
+  #   app_password: ""            # docomo回線からMy docomo → メール設定で取得
+  #
+  # softbank:
+  #   enabled: false
+  #   email: "your@i.softbank.jp" # @i.softbank.jp のみ対応 (@softbank.ne.jp は不可)
+  #   app_password: ""            # My SoftBank → Eメール(i)設定で取得

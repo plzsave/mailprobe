@@ -1,0 +1,29 @@
+# 認証情報 (絶対にコミットしない)
+credentials.json
+token.json
+outlook_token.json
+config.yaml
+
+# 検索条件ファイル (実運用時の日付・件名情報を含むためgitignore推奨)
+conditions.csv
+conditions.tsv
+
+# メールデータ・ドキュメント (実際のデータや作業用メモを含むためコミットしない)
+originals/
+docs/
+
+# 検証結果 (必要に応じてコミット可)
+results/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
