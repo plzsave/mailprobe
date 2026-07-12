@@ -1,0 +1,43 @@
+MIME-Version: 1.0
+Date: Thu, 20 Mar 2025 10:00:00 +0900
+From: sender@example.com
+To: test@gmail.com
+Subject: =?UTF-8?B?44OG44K544OI44Oh44O844Or77yI5re75LuY55S75YOP44GC44KK77yJ?=
+Message-ID: <20250320010003.abc126@example.com>
+Content-Type: multipart/mixed;
+	boundary="----=_Mixed_001_20250320"
+
+------=_Mixed_001_20250320
+Content-Type: multipart/alternative;
+	boundary="----=_Alt_001_20250320"
+
+------=_Alt_001_20250320
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+44OG44K544OI44Oh44O844Or44Gn44GZ44CCDQoNCueUu+WDj+ODleOCoeOCpOODq+OBjOa3u+S7
+mOOBleOCjOOBpuOBhOOBvuOBmeOAgg0K44GU56K66KqN44Gu44G744Gp44KI44KN44GX44GP44GK
+6aGY44GE44GE44Gf44GX44G+44GZ44CCDQo=
+
+------=_Alt_001_20250320
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImphIj4KPGhlYWQ+CiAgPG1ldGEgY2hhcnNldD0i
+VVRGLTgiPgogIDx0aXRsZT7jg4bjgrnjg4jjg6Hjg7zjg6vvvIjmt7vku5jnlLvlg4/jgYLjgorv
+vIk8L3RpdGxlPgo8L2hlYWQ+Cjxib2R5PgogIDxwPuODhuOCueODiOODoeODvOODq+OBp+OBmeOA
+gjwvcD4KICA8cD7nlLvlg4/jg5XjgqHjgqTjg6vjgYzmt7vku5jjgZXjgozjgabjgYTjgb7jgZnj
+gII8L3A+CiAgPHA+44GU56K66KqN44Gu44G744Gp44KI44KN44GX44GP44GK6aGY44GE44GE44Gf
+44GX44G+44GZ44CCPC9wPgo8L2JvZHk+CjwvaHRtbD4K
+
+------=_Alt_001_20250320--
+
+------=_Mixed_001_20250320
+Content-Type: image/png; name="sample.png"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="sample.png"
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwz
+AAAAAElFTkSuQmCC
+
+------=_Mixed_001_20250320--

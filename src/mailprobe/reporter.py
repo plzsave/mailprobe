@@ -3,18 +3,19 @@ reporter.py
 ===========
 検証結果の出力・保存を担う。
 
-  print_report()       : 1件の検証結果をターミナルに表示
-  print_summary()      : 1条件分のMTA別サマリーを表示
-  print_batch_summary(): バッチ実行の横断サマリーを表示
-  save_json()          : 1件の検証結果をJSONに保存
-  save_csv()           : バッチ結果をCSVに保存
+  print_report()        : 1件の検証結果をターミナルに表示
+  print_summary()       : 1条件分のMTA別サマリーを表示
+  build_batch_summary() : バッチ実行の横断サマリーを組み立てる (表示・通知で共用)
+  print_batch_summary() : バッチ実行の横断サマリーを表示
+  save_json()           : 1件の検証結果をJSONに保存
+  save_csv()            : バッチ結果をCSVに保存
 """
 
 from __future__ import annotations
 
 import csv
 import json
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -188,16 +189,26 @@ def print_summary(results: list[VerifyResult], config: Config) -> None:
     print("=" * 60)
 
 
-def print_batch_summary(
+@dataclass
+class BatchSummary:
+    """バッチ実行の横断サマリー (ターミナル表示と外部通知で共用)"""
+
+    lines: list[str]  # サマリー本文 (罫線・見出しを除く)
+    condition_count: int
+    result_count: int
+    ng_count: int
+    all_ok: bool  # 全条件がNGなし・未着なしのとき True
+
+
+def build_batch_summary(
     batch: list[tuple[str, list[VerifyResult], Config]],
-) -> None:
-    """全検索条件の横断サマリーを表示する"""
+) -> BatchSummary:
+    """全検索条件の横断サマリーを組み立てる"""
 
-    print("\n" + "=" * 70)
-    print("===== 全条件 横断サマリー =====\n")
-
+    lines: list[str] = []
     total_results = 0
     total_ng = 0
+    all_ok = True
 
     for label, results, config in batch:
         count = len(results)
@@ -213,7 +224,9 @@ def print_batch_summary(
             mta_str = f"{count}件"
 
         condition_ok = mta_ok and ng_count == 0
-        print(f"  {_icon(condition_ok)}  {label:<32}  MTA:{mta_str}  NG:{ng_count}件")
+        if not condition_ok:
+            all_ok = False
+        lines.append(f"  {_icon(condition_ok)}  {label:<32}  MTA:{mta_str}  NG:{ng_count}件")
 
         for r in results:
             if not r.overall_ok:
@@ -234,9 +247,29 @@ def print_batch_summary(
                     items.append("HTML構造")
                 if not r.compare.skipped and not (r.compare.plain_match and r.compare.html_match):
                     items.append("原稿比較")
-                print(f"       ↳ {mta_name}: {', '.join(items)}")
+                lines.append(f"       ↳ {mta_name}: {', '.join(items)}")
 
-    print(f"\n  全体: {len(batch)}条件 / {total_results}件検証 / {total_ng}件NG")
+    lines.append("")
+    lines.append(f"  全体: {len(batch)}条件 / {total_results}件検証 / {total_ng}件NG")
+    return BatchSummary(
+        lines=lines,
+        condition_count=len(batch),
+        result_count=total_results,
+        ng_count=total_ng,
+        all_ok=all_ok,
+    )
+
+
+def print_batch_summary(
+    batch: list[tuple[str, list[VerifyResult], Config]],
+) -> None:
+    """全検索条件の横断サマリーを表示する"""
+
+    summary = build_batch_summary(batch)
+    print("\n" + "=" * 70)
+    print("===== 全条件 横断サマリー =====\n")
+    for line in summary.lines:
+        print(line)
     print("=" * 70)
 
 

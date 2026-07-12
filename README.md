@@ -233,6 +233,46 @@ JSON結果は `results/result_YYYYMMDD_HHMMSS_<msgid>.json` に、CSV一覧は `
 
 ---
 
+## Slack通知と定期実行への組み込み
+
+配信のたびに人が手動で実行しなくても済むよう、実行後の横断サマリーを Slack にプッシュ通知できます。
+cron や配信パイプラインの後段に組み込む使い方を想定しています。
+
+### Slack通知 (`--notify`)
+
+1. Slack で Incoming Webhook を作成し、Webhook URL を取得する
+2. URL を設定する (どちらか一方):
+   - `config.yaml` の `notify.slack_webhook_url` に記載
+   - 環境変数 `MAILPROBE_SLACK_WEBHOOK_URL` に設定 (cron / CI での運用推奨)
+3. `--notify` を付けて実行する
+
+```bash
+uv run mailprobe --conditions conditions.csv --provider all --notify
+```
+
+通知には「✅/❌ の見出し + 横断サマリー本文」が含まれ、NGがあれば通知プレビューの1行目で分かります。
+
+### 終了コード (`--fail-on-ng`)
+
+パイプラインや CI から NG を検知できるよう、`--fail-on-ng` を付けると結果に応じた終了コードを返します。
+
+| 終了コード | 意味 |
+|---|---|
+| 0 | 全条件OK (NGなし・未着なし) |
+| 1 | 実行エラー (設定不備・認証失敗・Slack通知失敗など) |
+| 2 | `--fail-on-ng` 指定時にNGまたは未着 (期待MTA台数割れ) があった |
+
+### cron での定期実行例
+
+```bash
+# 毎朝9時に前日配信分を検証して Slack に通知する例
+0 9 * * * cd /path/to/mailprobe && MAILPROBE_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." uv run mailprobe --conditions conditions.csv --provider all --notify --fail-on-ng
+```
+
+> 無人実行では OAuth のブラウザ認証が行えないため、事前に手動で1回実行して `token.json` / `outlook_token.json` を生成しておいてください。トークンが失効した場合も再度手動での認証が必要です。
+
+---
+
 ## ファイル構成
 
 ```
@@ -243,8 +283,16 @@ mailprobe/
 │       ├── __main__.py      # CLIエントリーポイント (uv run mailprobe)
 │       ├── verifier.py      # 検証ロジック本体
 │       ├── fetcher.py       # GmailFetcher / ImapFetcher (メール取得の抽象化)
-│       ├── auth.py          # Gmail OAuth2認証
+│       ├── auth_gmail.py    # Gmail OAuth2認証
+│       ├── auth_outlook.py  # Outlook OAuth2認証 (MSAL device code flow)
+│       ├── models.py        # 検証結果のデータクラス定義
+│       ├── reporter.py      # 結果の表示・JSON/CSV保存・横断サマリー組み立て
+│       ├── notifier.py      # Slack Incoming Webhook 通知
 │       └── config.py        # 設定読み込み
+├── docs/
+│   ├── architecture.md      # 設計判断の記録
+│   ├── sample*.eml          # 原稿ファイルのサンプル (合成データ)
+│   └── archive/             # 作業用メモ (gitignore)
 ├── originals/               # 原稿ファイル置き場
 │   └── テストメール_UTF8/   # 検索条件ごとにサブディレクトリを作成
 │       └── body.eml         # EML形式推奨 (.txt/.html も可)
