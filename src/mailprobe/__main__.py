@@ -3,6 +3,7 @@ mailprobe エントリーポイント
 ============================
 単独実行:  uv run mailprobe
 バッチ実行: uv run mailprobe --conditions conditions.csv
+定期実行向け: uv run mailprobe --conditions conditions.csv --notify --fail-on-ng
 """
 
 from __future__ import annotations
@@ -16,7 +17,8 @@ from pathlib import Path
 from mailprobe.config import Config
 from mailprobe.fetcher import GmailFetcher, ImapFetcher, MailFetcher
 from mailprobe.models import VerifyResult
-from mailprobe.reporter import print_batch_summary, save_csv
+from mailprobe.notifier import build_slack_payload, post_slack
+from mailprobe.reporter import BatchSummary, build_batch_summary, print_batch_summary, save_csv
 from mailprobe.verifier import run_condition
 
 logger = logging.getLogger(__name__)
@@ -68,31 +70,29 @@ def _enabled_providers(config: Config) -> list[str]:
 # =====================================================================
 
 
-def run_single(config: Config, provider: str = "gmail") -> None:
+def run_single(config: Config, provider: str = "gmail") -> BatchSummary:
     """config.yaml の単一条件で実行する"""
     if provider == "all":
         providers = _enabled_providers(config)
         if not providers:
             logger.error("[エラー] 有効なプロバイダーが config.yaml に設定されていません")
             sys.exit(1)
-        all_results: list[VerifyResult] = []
+        results: list[VerifyResult] = []
         for pname in providers:
             fetcher = _build_fetcher(config, pname)
-            all_results.extend(run_condition(fetcher, config, provider=pname))
-        if all_results:
-            label = config.subject or "single"
-            out = save_csv([(label, all_results)], config.results_dir)
-            logger.info("\n[CSV] %s", out)
+            results.extend(run_condition(fetcher, config, provider=pname))
     else:
         fetcher = _build_fetcher(config, provider)
         results = run_condition(fetcher, config, provider=provider)
-        if results:
-            label = config.subject or "single"
-            out = save_csv([(label, results)], config.results_dir)
-            logger.info("\n[CSV] %s", out)
+
+    label = config.subject or "single"
+    if results:
+        out = save_csv([(label, results)], config.results_dir)
+        logger.info("\n[CSV] %s", out)
+    return build_batch_summary([(label, results, config)])
 
 
-def run_batch(conditions_path: str, provider: str = "gmail") -> None:
+def run_batch(conditions_path: str, provider: str = "gmail") -> BatchSummary:
     """CSV/TSV の条件一覧を順番に実行する"""
     path = Path(conditions_path)
     if not path.exists():
@@ -101,6 +101,14 @@ def run_batch(conditions_path: str, provider: str = "gmail") -> None:
 
     # 拡張子で区切り文字を自動判定
     delimiter = "\t" if path.suffix.lower() in (".tsv", ".tab") else ","
+
+    # 認証より先に条件ファイルを検証し、不正入力で早期に失敗させる
+    with path.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f, delimiter=delimiter))
+
+    if not rows:
+        logger.error("[エラー] 条件ファイルに有効な行がありません")
+        sys.exit(1)
 
     base_config = Config.load()
 
@@ -113,13 +121,6 @@ def run_batch(conditions_path: str, provider: str = "gmail") -> None:
     else:
         # 認証は1度だけ行う
         fetchers = {provider: _build_fetcher(base_config, provider)}
-
-    with path.open(encoding="utf-8", newline="") as f:
-        rows = list(csv.DictReader(f, delimiter=delimiter))
-
-    if not rows:
-        logger.error("[エラー] 条件ファイルに有効な行がありません")
-        sys.exit(1)
 
     logger.info("[バッチ実行] %d件の検索条件を順番に実行します", len(rows))
 
@@ -140,11 +141,27 @@ def run_batch(conditions_path: str, provider: str = "gmail") -> None:
 
     out = save_csv([(label, results) for label, results, _ in batch], base_config.results_dir)
     logger.info("\n[CSV] %s", out)
+    return build_batch_summary(batch)
 
 
 # =====================================================================
 # エントリーポイント
 # =====================================================================
+
+
+def _notify_slack(config: Config, summary: BatchSummary) -> None:
+    """横断サマリーを Slack に通知する。未設定・送信失敗時は終了コード1"""
+    if not config.slack_webhook_url:
+        logger.error(
+            "[エラー] --notify には Slack Webhook URL が必要です。"
+            " config.yaml の notify.slack_webhook_url"
+            " または環境変数 MAILPROBE_SLACK_WEBHOOK_URL を設定してください"
+        )
+        sys.exit(1)
+    if not post_slack(config.slack_webhook_url, build_slack_payload(summary)):
+        # cron 等での無人実行時に通知欠落へ気付けるよう、失敗は終了コードで伝える
+        sys.exit(1)
+    logger.info("[Slack] 通知を送信しました")
 
 
 def entry() -> None:
@@ -167,13 +184,34 @@ def entry() -> None:
             " outlook / icloud は config.yaml の providers: セクションで設定が必要。"
         ),
     )
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help=(
+            "実行後に横断サマリーを Slack に通知する。"
+            " config.yaml の notify.slack_webhook_url"
+            " または環境変数 MAILPROBE_SLACK_WEBHOOK_URL の設定が必要。"
+        ),
+    )
+    parser.add_argument(
+        "--fail-on-ng",
+        action="store_true",
+        help="NGまたは未着 (期待MTA台数割れ) があるとき終了コード2で終了する (cron / CI 組み込み用)",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+    config = Config.load()
     if args.conditions:
-        run_batch(args.conditions, provider=args.provider)
+        summary = run_batch(args.conditions, provider=args.provider)
     else:
-        run_single(Config.load(), provider=args.provider)
+        summary = run_single(config, provider=args.provider)
+
+    if args.notify:
+        _notify_slack(config, summary)
+
+    if args.fail_on_ng and not summary.all_ok:
+        sys.exit(2)
 
 
 if __name__ == "__main__":

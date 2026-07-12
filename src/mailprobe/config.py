@@ -59,6 +59,9 @@ class Config:
     # 未設定時は Gmail のみ有効
     providers: dict[str, ProviderConfig] = field(default_factory=dict)
 
+    # Slack Incoming Webhook URL (--notify で使用。空文字列なら未設定)
+    slack_webhook_url: str = ""
+
     @classmethod
     def load(cls, path: str = "config.yaml") -> Config:
         config_file = Path(path)
@@ -105,6 +108,11 @@ class Config:
         # providers: セクションが未記載でも gmail は常に利用可能
         if "gmail" not in c.providers:
             c.providers["gmail"] = ProviderConfig(enabled=True)
+
+        notify = data.get("notify", {}) or {}
+        c.slack_webhook_url = notify.get("slack_webhook_url", "") or os.environ.get(
+            "MAILPROBE_SLACK_WEBHOOK_URL", ""
+        )
 
         # バリデーション
         if c.max_results < 1:

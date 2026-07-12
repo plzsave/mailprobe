@@ -28,6 +28,10 @@ custom_headers: []
 #   - X-Campaign-ID
 #   - X-Mailer-ID
 
+# 通知設定 (--notify フラグ指定時に使用)
+notify:
+  slack_webhook_url: ""          # Slack Incoming Webhook URL。直書き、または環境変数 MAILPROBE_SLACK_WEBHOOK_URL で指定
+
 # プロバイダー設定 (uv run mailprobe --provider で使用するプロバイダーを選択)
 # gmail は providers: 未記載でも常に利用可能 (OAuth認証のため email / app_password 不要)
 providers:
