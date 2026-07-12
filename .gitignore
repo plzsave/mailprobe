@@ -8,9 +8,10 @@ config.yaml
 conditions.csv
 conditions.tsv
 
-# メールデータ・ドキュメント (実際のデータや作業用メモを含むためコミットしない)
+# メールデータ・作業用メモ (実際のデータや作成中の計画書を含むためコミットしない)
+# 公開して良いドキュメントは docs/ 直下に、作業メモは docs/archive/ に置く
 originals/
-docs/
+docs/archive/
 
 # 検証結果 (必要に応じてコミット可)
 results/

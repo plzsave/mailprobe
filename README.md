@@ -289,6 +289,10 @@ mailprobe/
 │       ├── reporter.py      # 結果の表示・JSON/CSV保存・横断サマリー組み立て
 │       ├── notifier.py      # Slack Incoming Webhook 通知
 │       └── config.py        # 設定読み込み
+├── docs/
+│   ├── architecture.md      # 設計判断の記録
+│   ├── sample*.eml          # 原稿ファイルのサンプル (合成データ)
+│   └── archive/             # 作業用メモ (gitignore)
 ├── originals/               # 原稿ファイル置き場
 │   └── テストメール_UTF8/   # 検索条件ごとにサブディレクトリを作成
 │       └── body.eml         # EML形式推奨 (.txt/.html も可)
