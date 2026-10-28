@@ -102,6 +102,14 @@ def run_batch(conditions_path: str, provider: str = "gmail") -> None:
     # 拡張子で区切り文字を自動判定
     delimiter = "\t" if path.suffix.lower() in (".tsv", ".tab") else ","
 
+    # 認証の前に条件ファイルを検証し、空のファイルでは外部へ接続しない
+    with path.open(encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f, delimiter=delimiter))
+
+    if not rows:
+        logger.error("[エラー] 条件ファイルに有効な行がありません")
+        sys.exit(1)
+
     base_config = Config.load()
 
     if provider == "all":
@@ -113,13 +121,6 @@ def run_batch(conditions_path: str, provider: str = "gmail") -> None:
     else:
         # 認証は1度だけ行う
         fetchers = {provider: _build_fetcher(base_config, provider)}
-
-    with path.open(encoding="utf-8", newline="") as f:
-        rows = list(csv.DictReader(f, delimiter=delimiter))
-
-    if not rows:
-        logger.error("[エラー] 条件ファイルに有効な行がありません")
-        sys.exit(1)
 
     logger.info("[バッチ実行] %d件の検索条件を順番に実行します", len(rows))
 
